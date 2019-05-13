@@ -1,10 +1,10 @@
 #include <stdio.h>
-#include "aes_def.h"
 #include <limits.h>
 #include <float.h>
+#include "aes_def.h"
+#include "aes_var.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
 
 	//printf("in main\n");
 	BYTE llave[16];
@@ -37,13 +37,11 @@ int main(int argc, char **argv)
 	//printf("CHAR_BIT    :   %d\n", CHAR_BIT);
 }
 
-void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
-{
+void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1){
 	printf("in key expansion\n");
 	WORD temp;
 	int i = 0;
-	while (i < Nk)
-	{
+	while (i < Nk){
 		unsigned int x;
 		/*
 		key[3] = (w[i] >> 24) & 0xFF;
@@ -57,12 +55,53 @@ void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
 		//w[i] = WORD(key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]);
 	}
 	i = Nk;
-	while (i < Nb * (Nr + 1))
-	{
+	//while (i < Nb * (Nr + 1)){
 		temp = w[i - 1];
 		printf("temp = %x \n", temp);
-		if(i % Nk == 0);
+		if(i % Nk == 0){
+			RotWord(&temp);
+			printf("temp con rotword = %x \n", temp);
+			SubWord(&temp);
+			printf("con subword = %x \n", temp);
+		}
 		
-	}
+	//}
 	printf("out key expansion\n");
+}
+
+void RotWord(WORD *temp){
+	*temp = ((*temp<<8) & 0xFFFFFF00) | ((*temp >>24 ) & 0x000000FF);
+}
+
+void SubBytes(BYTE *indice){
+	int aux = 0;
+	BYTE indic[2];
+	indic[0] = (*indice & 0x0F) ;
+	//printf("subByte indic [0] = %x \n",indic[0]);
+	indic[1] = ((*indice >> 4) & 0x0F) ;
+	//printf("subByte indic [1] = %x \n",indic[1]);
+	aux = S_Box[indic[0]][indic[1]];
+	*indice = aux;
+	//*temp = ((*temp<<8) & 0xFFFFFF00) | ((*temp >>24 ) & 0x000000FF);
+}
+
+void SubWord(WORD *fourBytes){
+	BYTE aux[4];
+	aux[0]= (*fourBytes >> 0 )& 0x000000FF;
+	//printf("subword aux 0 = %x \n",aux[0]);
+	SubBytes(&aux[0]);
+
+	aux[1]= (*fourBytes >> 8 ) & 0x000000FF;
+	//printf("subword aux 1 = %x \n",aux[1]);
+	SubBytes(&aux[1]);
+
+	aux[2]= (*fourBytes >> 16 ) & 0x000000FF;
+	//printf("subword aux 2 = %x \n",aux[2]);
+	SubBytes(&aux[2]);
+
+	aux[3]= (*fourBytes >> 24 ) & 0x000000FF;
+	//printf("subword aux 3 = %x \n",aux[3]);
+	SubBytes(&aux[3]);
+
+	*fourBytes = ((aux[0] << 0) | (aux[1] << 8) |(aux[2] << 16) |(aux[3] << 24));
 }
