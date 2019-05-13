@@ -1,0 +1,2 @@
+clang -g aes.c -o aes
+./aes
