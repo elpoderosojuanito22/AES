@@ -122,7 +122,7 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 		}
 		printf("\n");
 	}
-	printf("\n");
+	printf("-------\n");
 	//for (int i = 0; i < 4; i++)
 	//{
 	//	for (int j = 0; j < Nb; j++)
@@ -131,12 +131,38 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 	//	}
 	//	printf("\n");
 	//}
-
 	for (int i = 0; i < 4; i++)
 	{
 		printf("%x \n", w[i]);
 	}
+
+	printf("\n-------\n");
 	AddRoundKey(state, w, 0, Nb - 1);
+	printf("\n-------\n");
+	//for (int round = 1; round < Nr-1; round++)
+	//{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			SubBytes(&state[j][i]);
+			printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
+	ShiftRows(state);
+	printf("\n -------- \n");
+	MixColumns(state);
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
+	//MixColumns();
+	//}
 }
 
 void AddRoundKey(BYTE state[4][Nb], WORD w[Nb * (Nr + 1)], int inicio, int termino)
@@ -157,5 +183,54 @@ void AddRoundKey(BYTE state[4][Nb], WORD w[Nb * (Nr + 1)], int inicio, int termi
 		state[3][i] = state[3][i] ^ aux[3][i];
 		printf("%x ", state[3][i]);
 		printf("\n");
+	}
+}
+
+void ShiftRows(BYTE state[4][Nb])
+{
+	BYTE temp;
+	temp = state[1][0];
+	state[1][0] = state[1][1];
+	state[1][1] = state[1][2];
+	state[1][2] = state[1][3];
+	state[1][3] = temp;
+	for (int i = 0; i < 2; i++)
+	{
+		temp = state[2][0];
+		state[2][0] = state[2][1];
+		state[2][1] = state[2][2];
+		state[2][2] = state[2][3];
+		state[2][3] = temp;
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		temp = state[3][0];
+		state[3][0] = state[3][1];
+		state[3][1] = state[3][2];
+		state[3][2] = state[3][3];
+		state[3][3] = temp;
+	}
+}
+
+void MixColumns(BYTE state[4][Nb])
+{
+	int i;
+	unsigned char Tmp, Tm, t;
+	for (i = 0; i < 4; i++)
+	{
+		t = state[0][i];
+		Tmp = state[0][i] ^ state[1][i] ^ state[2][i] ^ state[3][i];
+		Tm = state[0][i] ^ state[1][i];
+		Tm = xtime(Tm);
+		state[0][i] ^= Tm ^ Tmp;
+		Tm = state[1][i] ^ state[2][i];
+		Tm = xtime(Tm);
+		state[1][i] ^= Tm ^ Tmp;
+		Tm = state[2][i] ^ state[3][i];
+		Tm = xtime(Tm);
+		state[2][i] ^= Tm ^ Tmp;
+		Tm = state[3][i] ^ t;
+		Tm = xtime(Tm);
+		state[3][i] ^= Tm ^ Tmp;
 	}
 }
