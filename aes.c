@@ -13,37 +13,19 @@ int main(int argc, char **argv)
 	WORD subLlaves[44];
 	BYTE out[4 * Nb];
 	KeyExpansion(llave, subLlaves, 4);
-	//for (int j = 0; j < sizeof(subLlaves) / sizeof(subLlaves[0]); j++)
-	//{
-	//	printf("w[%i] = %x \n", j, subLlaves[j]);
-	//}
 	Cipher(in, out, subLlaves);
-	//printf("CHAR_BIT    :   %d\n", CHAR_BIT);
 }
 
 void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
 {
-	printf("in key expansion\n");
 	WORD temp;
 	int i = 0;
 	while (i < Nk)
 	{
 		unsigned int x;
-		/*
-		key[3] = (w[i] >> 24) & 0xFF;
-		key[2] = (w[i] >> 16) & 0xFF;
-		key[1] = (w[i] >> 8) & 0xFF;
-		key[0] = w[i] & 0xFF;
-		*/
 		w[i] = (key[4 * i] << 24) | (key[4 * i + 1] << 16) | (key[4 * i + 2] << 8 | (key[4 * i + 3] << 0));
-		//printf("%x \n", w[i]);
 		i = i + 1;
-		//w[i] = WORD(key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]);
 	}
-	//printf("w[0] = %x \n", w[0]);
-	//printf("w[1] = %x \n", w[1]);
-	//printf("w[2] = %x \n", w[2]);
-	//printf("w[3] = %x \n", w[3]);
 	i = Nk;
 	while (i < Nb * (Nr + 1))
 	{
@@ -139,8 +121,32 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 	printf("\n-------\n");
 	AddRoundKey(state, w, 0, Nb - 1);
 	printf("\n-------\n");
-	//for (int round = 1; round < Nr-1; round++)
-	//{
+	for (int round = 1; round <= Nr - 1; round++)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				SubBytes(&state[j][i]);
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
+		ShiftRows(state);
+		printf("\n ----mixCol--- \n");
+		MixColumns(state);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
+		AddRoundKey(state, w, round * Nb, ((round + 1) * Nb) - 1);
+		printf("\n ----- \n \n");
+		//MixColumns();
+	}
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
@@ -151,38 +157,35 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 		printf("\n");
 	}
 	ShiftRows(state);
-	printf("\n -------- \n");
-	MixColumns(state);
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			printf("%x ", state[j][i]);
-		}
-		printf("\n");
-	}
-	//MixColumns();
-	//}
+	AddRoundKey(state, w, Nr * Nb, ((Nr + 1) * Nb) - 1);
 }
 
 void AddRoundKey(BYTE state[4][Nb], WORD w[Nb * (Nr + 1)], int inicio, int termino)
 {
 	BYTE aux[4][4];
+	printf("\n------llaves del raund------\n");
 	for (int i = inicio; i < termino + 1; i++)
 	{
-		aux[0][i] = (w[i] >> 24) & 0x000000FF;
+		printf("%x \n", w[i]);
+	}
+	//printf("\n --------------\n");
+	printf("\n------addRoundkey------\n");
+	for (int i = 0; i < 3 + 1; i++)
+	{
+		aux[0][i] = (w[inicio] >> 24) & 0x000000FF;
 		state[0][i] = state[0][i] ^ aux[0][i];
 		printf("%x ", state[0][i]);
-		aux[1][i] = (w[i] >> 16) & 0x000000FF;
+		aux[1][i] = (w[inicio] >> 16) & 0x000000FF;
 		state[1][i] = state[1][i] ^ aux[1][i];
 		printf("%x ", state[1][i]);
-		aux[2][i] = (w[i] >> 8) & 0x000000FF;
+		aux[2][i] = (w[inicio] >> 8) & 0x000000FF;
 		state[2][i] = state[2][i] ^ aux[2][i];
 		printf("%x ", state[2][i]);
-		aux[3][i] = (w[i] >> 0) & 0x000000FF;
+		aux[3][i] = (w[inicio] >> 0) & 0x000000FF;
 		state[3][i] = state[3][i] ^ aux[3][i];
 		printf("%x ", state[3][i]);
 		printf("\n");
+		inicio++;
 	}
 }
 
