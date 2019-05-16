@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
+#include <stdlib.h>
 #include "aes_def.h"
 #include "aes_var.h"
 
@@ -10,12 +11,13 @@ int main(int argc, char **argv)
 	//printf("in main\n");
 	BYTE llave[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
 	//BYTE in[16] = {0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
-	BYTE in[16] = {0x39 ,0x25 ,0x84 ,0x1d  ,0x02 ,0xdc ,0x09 ,0xfb ,0xdc ,0x11 ,0x85 ,0x97 ,0x19 ,0x6a ,0x0b ,0x32}; 
+	BYTE in[16] = {0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
 	WORD subLlaves[44];
 	BYTE out[4 * Nb];
 	KeyExpansion(llave, subLlaves, 4);
 	//Cipher(in, out, subLlaves);
-	InvCipher(in, out, subLlaves);
+	//InvCipher(in, out, subLlaves);
+	leer(in, subLlaves);
 }
 
 void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
@@ -89,7 +91,7 @@ void SubWord(WORD *fourBytes)
 void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 {
 	BYTE state[4][Nb];
-	printf("\n----entrada----\n");
+	printf("\n---------entrada--------\n");
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < Nb; j++)
@@ -146,6 +148,15 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 	}
 	ShiftRows(state);
 	AddRoundKey(state, w, Nr * Nb, ((Nr + 1) * Nb) - 1);
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < Nb; j++)
+		{
+			out[(i * 4) + j] = state[j][i];
+			//printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
 }
 
 void AddRoundKey(BYTE state[4][Nb], WORD w[Nb * (Nr + 1)], int inicio, int termino)
@@ -286,7 +297,16 @@ void InvCipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 		}
 		printf("\n");
 	}
-	AddRoundKey(state, w, 0, Nb-1);
+	AddRoundKey(state, w, 0, Nb - 1);
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < Nb; j++)
+		{
+			out[(i * 4) + j] = state[j][i];
+			//printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
 }
 void InvSubBytes(BYTE *indice)
 {
@@ -338,5 +358,44 @@ void InvMixColumns(BYTE state[4][Nb])
 		state[1][i] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
 		state[2][i] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
 		state[3][i] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
+	}
+}
+
+void leer(BYTE in[16], WORD w[Nb * (Nr + 1)])
+{
+	int i;
+	if ((fpe = fopen("ent", "r")) == NULL)
+	{
+		fprintf(stderr, "AES-Error: no puedo abrir %s\n", "ent");
+		exit(1);
+	}
+	if ((fps = fopen("sal", "w")) == NULL)
+	{
+		fprintf(stderr, "DES-Error: no puedo abrir %s\n", "sal");
+		exit(1);
+	}
+	BYTE out[4 * Nb];
+	while (1)
+	{ /* Hasta terminar de leer */
+		if ((i = fread((char *)in, 1, 16, fpe)) != 16)
+		{ /* Lee bloque de 64 bits */
+			if (i == 0)
+				break; /* Termino de leer, todo bien */
+			else if ((i > 0) && (i < 16))
+				for (; i < 16; i++)
+					((char *)in)[i] = 0x0; /* Relleno */
+			else
+			{ /* Hubo un error en la lectura */
+				fprintf(stderr, "AES-Error: Error al leer del archivo\n");
+				exit(1);
+			}
+		}
+		//Cipher(in, out, w);
+		InvCipher(in, out, w);
+		if (fwrite((char *)out, 1, 16, fps) != 16)
+		{ /* Escribe el bloque cifrado */
+			fprintf(stderr, "AES-Error: Error al escribir al archivo\n");
+			exit(1);
+		}
 	}
 }
