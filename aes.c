@@ -9,11 +9,13 @@ int main(int argc, char **argv)
 
 	//printf("in main\n");
 	BYTE llave[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-	BYTE in[16] = {0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
+	//BYTE in[16] = {0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
+	BYTE in[16] = {0x39 ,0x25 ,0x84 ,0x1d  ,0x02 ,0xdc ,0x09 ,0xfb ,0xdc ,0x11 ,0x85 ,0x97 ,0x19 ,0x6a ,0x0b ,0x32}; 
 	WORD subLlaves[44];
 	BYTE out[4 * Nb];
 	KeyExpansion(llave, subLlaves, 4);
-	Cipher(in, out, subLlaves);
+	//Cipher(in, out, subLlaves);
+	InvCipher(in, out, subLlaves);
 }
 
 void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
@@ -122,14 +124,14 @@ void Cipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
 		}
 		printf("\n----mixCol----\n");
 		MixColumns(state);
-		for (int i = 0; i < 4; i++)		
-		{		
-			for (int j = 0; j < 4; j++)		
-			{		
-				printf("%x ", state[j][i]);		
-			}		
-			printf("\n");		
-		}		
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
 		AddRoundKey(state, w, round * Nb, ((round + 1) * Nb) - 1);
 		printf("\n----SubBytes----\n \n");
 	}
@@ -221,5 +223,120 @@ void MixColumns(BYTE state[4][Nb])
 		Tm = state[3][i] ^ t;
 		Tm = xtime(Tm);
 		state[3][i] ^= Tm ^ Tmp;
+	}
+}
+
+/*aqui comienza las funciones para el descifrado */
+
+void InvCipher(BYTE in[4 * Nb], BYTE out[4 * Nb], WORD w[Nb * (Nr + 1)])
+{
+	BYTE state[4][Nb];
+	printf("\n----entrada descrifrado----\n");
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < Nb; j++)
+		{
+			state[j][i] = in[(i * 4) + j];
+			printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
+	AddRoundKey(state, w, Nr * Nb, ((Nr + 1) * Nb) - 1);
+	for (int round = Nr - 1; round >= 1; round--)
+	{
+		InvShiftRows(state);
+		printf("\n----InvShiftRows----\n");
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				InvSubBytes(&state[j][i]);
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
+		AddRoundKey(state, w, round * Nb, ((round + 1) * Nb) - 1);
+		printf("\n----InvmixCol----\n");
+		InvMixColumns(state);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%x ", state[j][i]);
+			}
+			printf("\n");
+		}
+		printf("\n----SubBytes----\n \n");
+	}
+	InvShiftRows(state);
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			InvSubBytes(&state[j][i]);
+			printf("%x ", state[j][i]);
+		}
+		printf("\n");
+	}
+	AddRoundKey(state, w, 0, Nb-1);
+}
+void InvSubBytes(BYTE *indice)
+{
+	int aux = 0;
+	BYTE indic[2];
+	indic[0] = (*indice & 0x0F);
+	indic[1] = ((*indice >> 4) & 0x0F);
+	aux = Inv_S_Box[indic[0]][indic[1]];
+	*indice = aux;
+}
+
+void InvShiftRows(BYTE state[4][Nb])
+{
+	BYTE temp;
+	temp = state[1][3];
+	state[1][3] = state[1][2];
+	state[1][2] = state[1][1];
+	state[1][1] = state[1][0];
+	state[1][0] = temp;
+	for (int i = 0; i < 2; i++)
+	{
+		temp = state[2][3];
+		state[2][3] = state[2][2];
+		state[2][2] = state[2][1];
+		state[2][1] = state[2][0];
+		state[2][0] = temp;
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		temp = state[3][3];
+		state[3][3] = state[3][2];
+		state[3][2] = state[3][1];
+		state[3][1] = state[3][0];
+		state[3][0] = temp;
+	}
+}
+
+void InvMixColumns(BYTE state[4][Nb])
+{
+	int i;
+	unsigned char a, b, c, d;
+	for (i = 0; i < 4; i++)
+	{
+		a = state[0][i];
+		b = state[1][i];
+		c = state[2][i];
+		d = state[3][i];
+		state[0][i] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
+		state[1][i] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
+		state[2][i] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
+		state[3][i] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
 	}
 }
