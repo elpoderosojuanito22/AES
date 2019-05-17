@@ -2,22 +2,25 @@
 #include <limits.h>
 #include <float.h>
 #include <stdlib.h>
+#include <string.h>
 #include "aes_def.h"
 #include "aes_var.h"
 
-int main(int argc, char **argv)
+int main(argc, argv) int argc;
+char *argv[];
 {
 
 	//printf("in main\n");
-	BYTE llave[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+	//BYTE llave[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
 	//BYTE in[16] = {0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
 	BYTE in[16] = {0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
 	WORD subLlaves[44];
 	BYTE out[4 * Nb];
+	procesa_argv(argc, argv); /* Procesa los argumentos */
 	KeyExpansion(llave, subLlaves, 4);
 	//Cipher(in, out, subLlaves);
 	//InvCipher(in, out, subLlaves);
-	leer(in, subLlaves);
+	CifrarDescifrarArchivo(in, subLlaves);
 }
 
 void KeyExpansion(BYTE key[4 * Nk], WORD w[Nb * (Nr + 1)], int Nk1)
@@ -361,19 +364,9 @@ void InvMixColumns(BYTE state[4][Nb])
 	}
 }
 
-void leer(BYTE in[16], WORD w[Nb * (Nr + 1)])
+void CifrarDescifrarArchivo(BYTE in[16], WORD w[Nb * (Nr + 1)])
 {
 	int i;
-	if ((fpe = fopen("ent", "r")) == NULL)
-	{
-		fprintf(stderr, "AES-Error: no puedo abrir %s\n", "ent");
-		exit(1);
-	}
-	if ((fps = fopen("sal", "w")) == NULL)
-	{
-		fprintf(stderr, "DES-Error: no puedo abrir %s\n", "sal");
-		exit(1);
-	}
 	BYTE out[4 * Nb];
 	while (1)
 	{ /* Hasta terminar de leer */
@@ -390,12 +383,86 @@ void leer(BYTE in[16], WORD w[Nb * (Nr + 1)])
 				exit(1);
 			}
 		}
-		//Cipher(in, out, w);
-		InvCipher(in, out, w);
+		if (cifrar)
+		{
+			Cipher(in, out, w);
+		}
+		else
+		{
+			InvCipher(in, out, w);
+		}
 		if (fwrite((char *)out, 1, 16, fps) != 16)
 		{ /* Escribe el bloque cifrado */
 			fprintf(stderr, "AES-Error: Error al escribir al archivo\n");
 			exit(1);
 		}
 	}
+}
+
+void procesa_argv(argc, argv) int argc;
+char *argv[];
+{
+	if (argc != 5)
+		uso();
+	strcpy(ent, argv[4]);
+	strcpy(sal, argv[4]);
+	//strcpy(llave, argv[2]);
+
+	if (argv[1][0] == '-')
+	{
+		switch (argv[1][1])
+		{
+		case 'c':
+			strcat(sal, ".cif");
+			break;
+		case 'd':
+			//case 'e':
+			cifrar = FALSE;
+			if (strcmp(".cif", &ent[strlen(argv[4]) - 4]))
+				strcat(ent, ".cif");
+			else
+				sal[strlen(argv[4]) - 4] = 0;
+			if (argv[1][1] == 'd')
+				//borrar = FALSE;
+				break;
+		//case 'p':
+		//	//cifrar = FALSE;
+		//	if (strcmp(".cif", &ent[strlen(argv[4]) - 4]))
+		//		strcat(ent, ".cif");
+		//	//pantalla = TRUE;
+		//	fps = stdout; /* La salida a la pantalla */
+		//	break;
+		default:
+			fprintf(stderr, "AES-Error: opcion ilegal %c\n", argv[1][1]);
+			exit(1);
+		}
+	}
+	else
+		uso();
+	//llave[0] = strtol(argv[2], (char **)NULL, 16); /* 56 bits de la llave */
+	//llave[1] = strtol(argv[3], (char **)NULL, 16); /* maestra (14 digitos hexa) */
+
+	//{
+	//	int i;
+	//	for (i = 0; i < 8; i++)
+	//		//printf("%2x ", ((B8 *)llave)[i]);
+	//		printf("\n");
+	//}
+
+	if ((fpe = fopen(ent, "r")) == NULL)
+	{
+		fprintf(stderr, "AES-Error: no puedo abrir %s\n", ent);
+		exit(1);
+	}
+	if ((fps = fopen(sal, "w")) == NULL)
+	{
+		fprintf(stderr, "AES-Error: no puedo abrir %s\n", sal);
+		exit(1);
+	}
+}
+
+void uso()
+{
+	printf("\nUso : $ des [-c | -d] KEY algo ARCHIVO\n");
+	exit(0);
 }
