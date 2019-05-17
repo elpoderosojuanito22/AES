@@ -406,7 +406,15 @@ char *argv[];
 		uso();
 	strcpy(ent, argv[4]);
 	strcpy(sal, argv[4]);
-	//strcpy(llave, argv[2]);
+	char hex[2];
+	for (int i = 0; i < 16; i++) //lee la llave desde argumentos de la terminal
+	{
+		hex[0] = argv[2][i*2];
+		hex[1] = argv[2][i*2 +1];
+		BYTE num = (int)strtol(hex, NULL, 16);
+		llave[i]=num;
+		printf("%x ", num);
+	}
 
 	if (argv[1][0] == '-')
 	{
@@ -439,16 +447,6 @@ char *argv[];
 	}
 	else
 		uso();
-	//llave[0] = strtol(argv[2], (char **)NULL, 16); /* 56 bits de la llave */
-	//llave[1] = strtol(argv[3], (char **)NULL, 16); /* maestra (14 digitos hexa) */
-
-	//{
-	//	int i;
-	//	for (i = 0; i < 8; i++)
-	//		//printf("%2x ", ((B8 *)llave)[i]);
-	//		printf("\n");
-	//}
-
 	if ((fpe = fopen(ent, "r")) == NULL)
 	{
 		fprintf(stderr, "AES-Error: no puedo abrir %s\n", ent);
@@ -463,6 +461,6 @@ char *argv[];
 
 void uso()
 {
-	printf("\nUso : $ des [-c | -d] KEY algo ARCHIVO\n");
+	printf("\nUso : $ des [-c | -d] KEY [-128 -192 -256] ARCHIVO\n");
 	exit(0);
 }
